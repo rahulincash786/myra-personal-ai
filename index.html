@@ -79,9 +79,10 @@ async function askMYRA(message) {
     reply.textContent = data.reply;
     state.textContent = "MYRA is ready to listen to you.";
     say(data.reply);
-  } catch (error) {
-    reply.textContent = "Connection error: " + error.message;
-    state.textContent = "Please try again.";
+    } catch (error) {
+  reply.textContent = "Connection error: " + error.message;
+  state.textContent = "Please try again.";
+  console.error("MYRA error:", error);
   }
 }
 
