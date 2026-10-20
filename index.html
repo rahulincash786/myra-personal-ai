@@ -136,9 +136,21 @@ recognition.onend = () => {
   };
 
   recognition.onresult = (event) => {
-    const message = event.results[0][0].transcript;
+  let message = "";
+
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    if (event.results[i].isFinal) {
+      message += event.results[i][0].transcript;
+    }
+  }
+
+  message = message.trim();
+
+  if (message) {
+    state.textContent = "You said: " + message;
     askMYRA(message);
-  };
+  }
+};
 
   try {
     recognition.start();
