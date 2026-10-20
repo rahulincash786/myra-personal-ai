@@ -48,13 +48,24 @@ let recognition = null;
 let keepListening = false;
 function say(text) {
   if (!("speechSynthesis" in window)) return;
+
   window.speechSynthesis.cancel();
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = /[\u0900-\u097F]/.test(text) ? "hi-IN" : "en-IN";
+
+  utterance.onend = () => {
+    if (keepListening && recognition) {
+      setTimeout(() => {
+        try {
+          recognition.start();
+        } catch (e) {}
+      }, 1000);
+    }
+  };
+
   window.speechSynthesis.speak(utterance);
 }
-
 async function askMYRA(message) {
   state.textContent = "MYRA is thinking...";
   reply.textContent = "You said: " + message;
