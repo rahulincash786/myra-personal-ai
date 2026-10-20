@@ -37,20 +37,110 @@ button{border:0;border-radius:30px;padding:15px 23px;font-weight:bold;cursor:poi
 <div class="note">Voice recognition depends on browser and internet support.<br>AI replies will be connected in the next setup step.</div>
 </main>
 <script>
-const state=document.getElementById('state'),reply=document.getElementById('reply'),orb=document.getElementById('orb');
-const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recognition;
-function say(text){if(!('speechSynthesis'in window))return; speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.lang='hi-IN';speechSynthesis.speak(u)}
-document.getElementById('talk').onclick=()=>{
- if(!SR){state.textContent='Voice recognition unavailable';reply.textContent='Please open this page in a supported browser such as Chrome. Internet and microphone permission may be needed.';return}
- recognition=new SR();recognition.lang='hi-IN';recognition.interimResults=false;
- recognition.onstart=()=>{state.textContent='Listening…';orb.classList.add('listening')};
- recognition.onend=()=>{orb.classList.remove('listening');state.textContent='Tap to speak again'};
- recognition.onerror=()=>{reply.textContent='Microphone error. Check browser microphone permission and try again.'};
- recognition.onresult=e=>{const text=e.results[0][0].transcript;reply.textContent='You said: '+text;const answer='Maine aapki baat suni: '+text+'. Abhi AI service connect nahi hui hai.';state.textContent='Voice captured';say(answer)};
- recognition.start();
+const API_URL = "https://myra-rahul-ai.rahulislam0342.workers.dev";
+
+const state = document.getElementById("state");
+const reply = document.getElementById("reply");
+const orb = document.getElementById("orb");
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition = null;
+
+function say(text) {
+  if (!("speechSynthesis" in window)) return;
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = /[\u0900-\u097F]/.test(text) ? "hi-IN" : "en-IN";
+  window.speechSynthesis.speak(utterance);
+}
+
+async function askMYRA(message) {
+  state.textContent = "MYRA is thinking...";
+  reply.textContent = "You said: " + message;
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: message })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Request failed: " + response.status);
+    }
+
+    if (!data.reply) {
+      throw new Error("MYRA did not return a reply.");
+    }
+
+    reply.textContent = data.reply;
+    state.textContent = "MYRA is ready to listen to you.";
+    say(data.reply);
+  } catch (error) {
+    reply.textContent = "Connection error: " + error.message;
+    state.textContent = "Please try again.";
+  }
+}
+
+document.getElementById("talk").onclick = () => {
+  if (!SR) {
+    state.textContent = "Voice recognition unavailable";
+    reply.textContent = "Please try Google Chrome.";
+    return;
+  }
+
+  if (recognition) {
+    try { recognition.abort(); } catch (e) {}
+  }
+
+  recognition = new SR();
+  recognition.lang = "hi-IN";
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    state.textContent = "Listening...";
+    orb.classList.add("listening");
+  };
+
+  recognition.onend = () => {
+    orb.classList.remove("listening");
+  };
+
+  recognition.onerror = (event) => {
+    orb.classList.remove("listening");
+    state.textContent = "Microphone error";
+    reply.textContent = "Please check microphone permission and try again. " + event.error;
+  };
+
+  recognition.onresult = (event) => {
+    const message = event.results[0][0].transcript;
+    askMYRA(message);
+  };
+
+  try {
+    recognition.start();
+  } catch (error) {
+    state.textContent = "Please tap Speak again.";
+  }
 };
-document.getElementById('stop').onclick=()=>{if(recognition)recognition.stop();if('speechSynthesis'in window)speechSynthesis.cancel();orb.classList.remove('listening');state.textContent='Stopped'};
+
+document.getElementById("stop").onclick = () => {
+  if (recognition) {
+    try { recognition.stop(); } catch (e) {}
+  }
+
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+  }
+
+  orb.classList.remove("listening");
+  state.textContent = "MYRA stopped.";
+};
 </script>
+ 
 </body>
 </html>
