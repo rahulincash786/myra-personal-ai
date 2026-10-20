@@ -45,7 +45,7 @@ const orb = document.getElementById("orb");
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
-
+let keepListening = false;
 function say(text) {
   if (!("speechSynthesis" in window)) return;
   window.speechSynthesis.cancel();
@@ -96,21 +96,28 @@ document.getElementById("talk").onclick = () => {
   if (recognition) {
     try { recognition.abort(); } catch (e) {}
   }
-
   recognition = new SR();
-  recognition.lang = "hi-IN";
+keepListening = true;
+recognition.lang = "hi-IN";
+recognition.continuous = true;
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
+recognition.onstart = () => {
+  state.textContent = "Listening...";
+  orb.classList.add("listening");
+};
 
-  recognition.onstart = () => {
-    state.textContent = "Listening...";
-    orb.classList.add("listening");
-  };
+recognition.onend = () => {
+  orb.classList.remove("listening");
 
-  recognition.onend = () => {
-    orb.classList.remove("listening");
-  };
-
+  if (keepListening && recognition) {
+    setTimeout(() => {
+      try {
+        recognition.start();
+      } catch (e) {}
+    }, 1000);
+  }
+};
   recognition.onerror = (event) => {
     orb.classList.remove("listening");
     state.textContent = "Microphone error";
@@ -130,6 +137,7 @@ document.getElementById("talk").onclick = () => {
 };
 
 document.getElementById("stop").onclick = () => {
+    keepListening = false;
   if (recognition) {
     try { recognition.stop(); } catch (e) {}
   }
